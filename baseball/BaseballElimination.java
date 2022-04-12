@@ -25,6 +25,8 @@ public class BaseballElimination {
             while (read.hasNextLine()) {
                 String Data = read.nextLine();
                 if (flag) {
+                    // initialize array by the number of teams in the text file
+                    // this if statement is executed only one time
                     number_of_teams = Integer.parseInt(Data);
                     w = new int[number_of_teams];
                     l = new int[number_of_teams];
@@ -34,13 +36,16 @@ public class BaseballElimination {
                     formatted_line_Data = new String[(number_of_teams + 4)];
                     flag = false;
                 } else {
+                    // split the line by whitespaces
                     line_Data = Data.split(" ");
                     for (int i = 0, j = 0; i < line_Data.length; i++) {
+                        // make new array without entries of whitespaces
                         if (!line_Data[i].equals("")) {
                             formatted_line_Data[j] = line_Data[i];
                             ++j;
                         }
                     }
+                    // extract information from the line : team name , wins , losses , remaining , matches against other teams
                     teams_names[counter] = formatted_line_Data[0];
                     w[counter] = Integer.parseInt(formatted_line_Data[1]);
                     l[counter] = Integer.parseInt(formatted_line_Data[2]);
@@ -118,6 +123,8 @@ public class BaseballElimination {
         // nontrivial elimination
         FlowNetwork network = create_flow_network(((numberOfTeams()) + 2 + game_verties(team_index)) , team_index);
         FordFulkerson ford = new FordFulkerson(network, 0, (network.V() - 1));
+        // here if there is a flow from source to game vertices that is not full forward path or empty backward path
+        // if this path found so the team can't win all the matches
         for (FlowEdge edge : network.adj(0)) {
             if (edge.residualCapacityTo(edge.to()) != 0) {
                 return true;
@@ -144,6 +151,7 @@ public class BaseballElimination {
         Queue<String> teams_queue = new LinkedList<>();
         FlowNetwork network = create_flow_network((2 + numberOfTeams() + game_verties(team_index)) , team_index);
         FordFulkerson ford = new FordFulkerson(network , 0 , (network.V() - 1));
+        // we include all the teams within the minimum cut that can form a subset to eliminate the team
         for(int i = 0 ; i < teams_names.length ; i++){
             if(!isEliminated(teams_names[i])){
                 if(ford.inCut((1 + game_verties(team_index) + i))){
@@ -153,12 +161,16 @@ public class BaseballElimination {
         }
         int subset_R_wins_and_remainign = 0, team_wins_and_remaining = wins(team) + remaining(team);
         double count = 0;
+        // calculating all wins and reaminings from all the teams in the subset
         for(String t : teams_queue){
             subset_R_wins_and_remainign += wins(t) + remaining(t);
             ++count;
         }
+        // find the mean and high it to the biggest number
+        // ex : if mean = 76.35 so after ceiling it will be 77
         double average_subset_R = (subset_R_wins_and_remainign / count);
         average_subset_R = Math.ceil(average_subset_R);
+        // here we avoid repeating teams in queue
         if (team_wins_and_remaining < average_subset_R) {
             for(String out_team : teams_queue){
                 if(!queue.contains(out_team)){
@@ -179,6 +191,8 @@ public class BaseballElimination {
                 if (j == team_index || x == j || j < x) {
                     continue;
                 }
+                // create edges from source to matches verties
+                // create edges from matches vertices to teams vertices
                 internal_network.addEdge(new FlowEdge(0, edge_count, g[x][j]));
                 internal_network.addEdge(new FlowEdge(edge_count, (1 + game_verties(team_index) + x), Double.POSITIVE_INFINITY));
                 internal_network.addEdge(new FlowEdge(edge_count, (1 + game_verties(team_index) + j), Double.POSITIVE_INFINITY));
@@ -189,6 +203,7 @@ public class BaseballElimination {
             if(team_index == j){
                 continue;
             }
+            // create edges from teams vertices to the target
             internal_network.addEdge(new FlowEdge(i, (internal_network.V() - 1), (w[team_index] + r[team_index] - w[j])));
         }
         return internal_network;
@@ -206,12 +221,14 @@ public class BaseballElimination {
         }
         return team_index;
     }
+    // this function is used to calculate number of matches relationships between each team
     private int game_verties(int team_index){
         int game_vertices_count = 0;
         for (int i = 0; i < g.length; i++) {
             if (i == team_index) {
                 continue;
             }
+            // calculate only entries on the upper part of the diagonal
             for (int j = 0; j < g[i].length; j++) {
                 if (j == team_index || i == j || j < i) {
                     continue;
